@@ -2,7 +2,7 @@
   "name": "git-change-navigator",
   "displayName": "vscode-git-change",
   "description": "Navigate Git changes across files with F7 and Shift+F7.",
-  "version": "0.0.6",
+  "version": "0.0.9",
   "publisher": "sunb256",
   "license": "MIT",
   "repository": {
@@ -38,6 +38,11 @@
           "default": [],
           "items": { "type": "string" },
           "description": "Repository-relative glob patterns for changes to exclude."
+        },
+        "gitChangeNavigator.closePanelOnNavigate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Hide the active bottom panel before navigating changes. This does not terminate terminal processes."
         }
       }
     }

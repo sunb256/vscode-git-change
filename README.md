@@ -7,11 +7,12 @@ The default target is merge conflicts and unstaged changes. Configure the extens
 ```json
 {
   "gitChangeNavigator.changeGroups": ["merge", "unstaged"],
-  "gitChangeNavigator.exclude": ["**/dist/**", "*.lock"]
+  "gitChangeNavigator.exclude": ["**/dist/**", "*.lock"],
+  "gitChangeNavigator.closePanelOnNavigate": true
 }
 ```
 
-`changeGroups` accepts `merge`, `staged`, and `unstaged`. `exclude` patterns are repository-relative globs; each matching changed file is skipped.
+`changeGroups` accepts `merge`, `staged`, and `unstaged`. `exclude` patterns are repository-relative globs; each matching changed file is skipped. `closePanelOnNavigate` defaults to `true` and hides the active bottom panel before navigation; terminal processes continue running. Set it to `false` to keep the panel visible.
 
 ## Development
 

@@ -41,6 +41,7 @@ export class ChangeNavigator {
       return;
     }
 
+    this.syncCursorToManualSelection(entries, direction);
     const target = this.nextTarget(entries, direction);
     this.cursor = { key: target.entry.key, hunk: target.hunk };
     this.previousKeys = entries.map((entry) => entry.key);
@@ -78,6 +79,40 @@ export class ChangeNavigator {
     entryIndex = (entryIndex + direction + entries.length) % entries.length;
     const entry = entries[entryIndex];
     return { entry, hunk: direction === 1 ? 0 : entry.hunks.length - 1 };
+  }
+
+  private syncCursorToManualSelection(entries: readonly ChangeEntry[], direction: 1 | -1): void {
+    const activeInput = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    let selectedEntry: ChangeEntry | undefined;
+
+    if (activeInput instanceof vscode.TabInputTextDiff) {
+      selectedEntry = entries.find((entry) =>
+        entry.resource.originalUri.toString() === activeInput.original.toString()
+        && entry.resource.uri.toString() === activeInput.modified.toString()
+      );
+    }
+
+    if (!selectedEntry) {
+      const activeUri = vscode.window.activeTextEditor?.document.uri;
+      if (activeUri) {
+        selectedEntry = entries.find((entry) =>
+          entry.resource.uri.fsPath === activeUri.fsPath
+          || entry.resource.originalUri.fsPath === activeUri.fsPath
+        );
+      }
+    }
+
+    if (!selectedEntry || selectedEntry.key === this.cursor?.key) {
+      return;
+    }
+
+    this.cursor = {
+      key: selectedEntry.key,
+      // nextTarget adds the direction before opening a hunk. These sentinel
+      // values therefore make F7 start at the first and Shift+F7 at the last.
+      hunk: direction === 1 ? -1 : selectedEntry.hunks.length
+    };
+    this.previousKeys = entries.map((entry) => entry.key);
   }
 
   private async collectEntries(
@@ -132,24 +167,37 @@ export class ChangeNavigator {
   }
 
   private async open(entry: ChangeEntry, hunkIndex: number): Promise<void> {
-    await vscode.commands.executeCommand(
-      'vscode.diff',
-      entry.resource.originalUri,
-      entry.resource.uri,
-      path.basename(entry.resource.uri.fsPath),
-      { preview: true }
-    );
-
     const line = entry.hunks[hunkIndex].line;
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    const editor = vscode.window.visibleTextEditors.find((candidate) => candidate.document.uri.fsPath === entry.resource.uri.fsPath)
-      ?? vscode.window.activeTextEditor;
-    if (!editor) {
-      return;
+    let positioned = false;
+    const revealHunk = (editor: vscode.TextEditor | undefined): void => {
+      if (!editor || editor.document.uri.fsPath !== entry.resource.uri.fsPath) {
+        return;
+      }
+      const targetLine = Math.min(Math.max(0, line), Math.max(0, editor.document.lineCount - 1));
+      const position = new vscode.Position(targetLine, 0);
+      editor.selection = new vscode.Selection(position, position);
+      editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+      positioned = true;
+    };
+
+    const activeEditorListener = vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (!positioned) {
+        revealHunk(editor);
+      }
+      if (positioned) {
+        activeEditorListener.dispose();
+      }
+    });
+
+    await vscode.commands.executeCommand('git.openChange', entry.resource.uri);
+    if (!positioned) {
+      activeEditorListener.dispose();
+      revealHunk(vscode.window.activeTextEditor);
     }
-    const targetLine = Math.min(Math.max(0, line), Math.max(0, editor.document.lineCount - 1));
-    const position = new vscode.Position(targetLine, 0);
-    editor.selection = new vscode.Selection(position, position);
-    editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+
+    if (!positioned) {
+      const editor = vscode.window.visibleTextEditors.find((candidate) => candidate.document.uri.fsPath === entry.resource.uri.fsPath);
+      revealHunk(editor);
+    }
   }
 }

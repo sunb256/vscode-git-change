@@ -9,6 +9,10 @@ const validViewModes: readonly ScmViewMode[] = ['list', 'tree'];
 export function activate(context: vscode.ExtensionContext): void {
   const navigator = new ChangeNavigator();
   const move = async (direction: 1 | -1): Promise<void> => {
+    const config = vscode.workspace.getConfiguration('gitChangeNavigator');
+    if (config.get<boolean>('closePanelOnNavigate', true)) {
+      await vscode.commands.executeCommand('workbench.action.closePanel');
+    }
     await vscode.commands.executeCommand('workbench.view.scm');
     const api = await getGitApi();
     if (!api) {
@@ -19,7 +23,6 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.window.showInformationMessage('対象の Git リポジトリがありません');
       return;
     }
-    const config = vscode.workspace.getConfiguration('gitChangeNavigator');
     const configuredGroups = config.get<unknown>('changeGroups', ['merge', 'unstaged']);
     const groups = Array.isArray(configuredGroups)
       ? configuredGroups.filter((group): group is ChangeGroup => typeof group === 'string' && validGroups.includes(group as ChangeGroup))
