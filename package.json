@@ -1,0 +1,57 @@
+{
+  "name": "git-change-navigator",
+  "displayName": "vscode-git-change",
+  "description": "Navigate Git changes across files with F7 and Shift+F7.",
+  "version": "0.0.6",
+  "publisher": "sunb256",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/sunb256/vscode-git-change.git"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["SCM Providers"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "gitChangeNavigator.nextChange", "title": "Git Change Navigator: Next Change" },
+      { "command": "gitChangeNavigator.previousChange", "title": "Git Change Navigator: Previous Change" }
+    ],
+    "keybindings": [
+      { "command": "gitChangeNavigator.nextChange", "key": "f7" },
+      { "command": "gitChangeNavigator.previousChange", "key": "shift+f7" }
+    ],
+    "configuration": {
+      "title": "Git Change Navigator",
+      "properties": {
+        "gitChangeNavigator.changeGroups": {
+          "type": "array",
+          "default": ["merge", "unstaged"],
+          "items": { "type": "string", "enum": ["merge", "staged", "unstaged"] },
+          "description": "Git change categories included in navigation."
+        },
+        "gitChangeNavigator.exclude": {
+          "type": "array",
+          "default": [],
+          "items": { "type": "string" },
+          "description": "Repository-relative glob patterns for changes to exclude."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "test": "npm run compile && node --test out/test/**/*.test.js",
+    "package": "node scripts/package.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.1",
+    "typescript": "^5.6.0"
+  }
+}
